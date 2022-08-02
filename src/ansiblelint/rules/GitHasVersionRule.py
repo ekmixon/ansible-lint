@@ -42,7 +42,7 @@ class GitHasVersionRule(AnsibleLintRule):
     def matchtask(
         self, task: Dict[str, Any], file: 'Optional[Lintable]' = None
     ) -> Union[bool, str]:
-        return bool(
+        return (
             task['action']['__ansible_module__'] == 'git'
             and task['action'].get('version', 'HEAD') == 'HEAD'
         )

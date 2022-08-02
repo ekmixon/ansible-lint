@@ -105,9 +105,11 @@ class MatchError(ValueError):
 
     def __lt__(self, other: object) -> bool:
         """Return whether the current object is less than the other."""
-        if not isinstance(other, self.__class__):
-            return NotImplemented
-        return bool(self._hash_key < other._hash_key)
+        return (
+            self._hash_key < other._hash_key
+            if isinstance(other, self.__class__)
+            else NotImplemented
+        )
 
     def __hash__(self) -> int:
         """Return a hash value of the MatchError instance."""
@@ -115,6 +117,8 @@ class MatchError(ValueError):
 
     def __eq__(self, other: object) -> bool:
         """Identify whether the other object represents the same rule match."""
-        if not isinstance(other, self.__class__):
-            return NotImplemented
-        return self.__hash__() == other.__hash__()
+        return (
+            self.__hash__() == other.__hash__()
+            if isinstance(other, self.__class__)
+            else NotImplemented
+        )

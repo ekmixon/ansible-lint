@@ -40,7 +40,7 @@ def rules_as_rst(rules: RulesCollection) -> str:
 
         description = d.description
         if d.link:
-            description += " `(more) <%s>`__" % d.link
+            description += f" `(more) <{d.link}>`__"
 
         r += f"\n\n.. _{d.id}:\n\n{title}\n{'*' * len(title)}\n\n{d.shortdesc}\n\n{description}"
 
@@ -57,7 +57,7 @@ def rules_as_rich(rules: RulesCollection) -> Iterable[Table]:
         table.add_column(Markdown(rule.shortdesc))
         description = rule.description
         if rule.link:
-            description += " [(more)](%s)" % rule.link
+            description += f" [(more)]({rule.link})"
         table.add_row("description", Markdown(description))
         if rule.version_added:
             table.add_row("version_added", rule.version_added)

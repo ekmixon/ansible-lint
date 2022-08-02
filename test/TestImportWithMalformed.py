@@ -42,8 +42,5 @@ PLAY_IMPORT_TASKS = Lintable(
 @pytest.mark.usefixtures('_play_files')
 def test_import_tasks_with_malformed_import(runner: Runner) -> None:
     results = runner.run()
-    passed = False
-    for result in results:
-        if result.rule.id == 'syntax-check':
-            passed = True
+    passed = any(result.rule.id == 'syntax-check' for result in results)
     assert passed, results

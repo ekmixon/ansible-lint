@@ -21,9 +21,7 @@ class NoFormattingInWhenRule(AnsibleLintRule):
     version_added = 'historic'
 
     def _is_valid(self, when: str) -> bool:
-        if not isinstance(when, str):
-            return True
-        return when.find('{{') == -1 and when.find('}}') == -1
+        return '{{' not in when and '}}' not in when if isinstance(when, str) else True
 
     def matchplay(
         self, file: "Lintable", data: "odict[str, Any]"
@@ -32,13 +30,15 @@ class NoFormattingInWhenRule(AnsibleLintRule):
         if isinstance(data, dict):
             if 'roles' not in data or data['roles'] is None:
                 return errors
-            for role in data['roles']:
-                if self.matchtask(role, file=file):
-                    errors.append(self.create_matcherror(details=str({'when': role})))
+            errors.extend(
+                self.create_matcherror(details=str({'when': role}))
+                for role in data['roles']
+                if self.matchtask(role, file=file)
+            )
+
         if isinstance(data, list):
             for play_item in data:
-                sub_errors = self.matchplay(file, play_item)
-                if sub_errors:
+                if sub_errors := self.matchplay(file, play_item):
                     errors = errors + sub_errors
         return errors
 

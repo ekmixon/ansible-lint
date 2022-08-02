@@ -62,14 +62,10 @@ class MetaTagValidRule(AnsibleLintRule):
         for tag in tags:
             msg = self.shortdesc
             if not isinstance(tag, str):
-                results.append(
-                    self.create_matcherror("Tags must be strings: '{}'".format(tag))
-                )
+                results.append(self.create_matcherror(f"Tags must be strings: '{tag}'"))
                 continue
             if not re.match(self.TAG_REGEXP, tag):
-                results.append(
-                    self.create_matcherror(message="{}, invalid: '{}'".format(msg, tag))
-                )
+                results.append(self.create_matcherror(message=f"{msg}, invalid: '{tag}'"))
 
         return results
 

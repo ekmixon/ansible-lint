@@ -179,12 +179,12 @@ def tokenize(line: str) -> Tuple[str, List[str], Dict[str, str]]:
     tokens = line.lstrip().split(" ")
     if tokens[0] == '-':
         tokens = tokens[1:]
-    if tokens[0] == 'action:' or tokens[0] == 'local_action:':
+    if tokens[0] in ['action:', 'local_action:']:
         tokens = tokens[1:]
     command = tokens[0].replace(":", "")
 
-    args = list()
-    kwargs = dict()
+    args = []
+    kwargs = {}
     nonkvfound = False
     for arg in tokens[1:]:
         if "=" in arg and not nonkvfound:
@@ -199,13 +199,11 @@ def tokenize(line: str) -> Tuple[str, List[str], Dict[str, str]]:
 def _playbook_items(pb_data: AnsibleBaseYAMLObject) -> ItemsView:  # type: ignore
     if isinstance(pb_data, dict):
         return pb_data.items()
-    if not pb_data:
-        return []  # type: ignore
-
-    # "if play" prevents failure if the play sequence contains None,
-    # which is weird but currently allowed by Ansible
-    # https://github.com/ansible-community/ansible-lint/issues/849
-    return [item for play in pb_data if play for item in play.items()]  # type: ignore
+    return (
+        [item for play in pb_data if play for item in play.items()]
+        if pb_data
+        else []
+    )
 
 
 def _set_collections_basedir(basedir: str) -> None:
@@ -255,7 +253,7 @@ def find_children(lintable: Lintable) -> List[Lintable]:  # noqa: C901
 
             # Repair incorrect paths obtained when old syntax was used, like:
             # - include: simpletask.yml tags=nginx
-            valid_tokens = list()
+            valid_tokens = []
             for token in split_args(path_str):
                 if '=' in token:
                     break
@@ -276,18 +274,13 @@ def template(
     fail_on_undefined: bool = False,
     **kwargs: str,
 ) -> Any:
-    try:
+    with contextlib.suppress(AnsibleError, ValueError, RepresenterError):
         value = ansible_template(
             os.path.abspath(basedir),
             value,
             variables,
             **dict(kwargs, fail_on_undefined=fail_on_undefined),
         )
-        # Hack to skip the following exception when using to_json filter on a variable.
-        # I guess the filter doesn't like empty vars...
-    except (AnsibleError, ValueError, RepresenterError):
-        # templating failed, so just keep value as is.
-        pass
     return value
 
 
@@ -310,15 +303,14 @@ def play_children(
     (k, v) = item
     add_all_plugin_dirs(os.path.abspath(basedir))
 
-    if k in delegate_map:
-        if v:
-            v = template(
-                os.path.abspath(basedir),
-                v,
-                dict(playbook_dir=PLAYBOOK_DIR or os.path.abspath(basedir)),
-                fail_on_undefined=False,
-            )
-            return delegate_map[k](basedir, k, v, parent_type)
+    if k in delegate_map and v:
+        v = template(
+            os.path.abspath(basedir),
+            v,
+            dict(playbook_dir=PLAYBOOK_DIR or os.path.abspath(basedir)),
+            fail_on_undefined=False,
+        )
+        return delegate_map[k](basedir, k, v, parent_type)
     return []
 
 
@@ -460,8 +452,6 @@ def _roles_children(
 
 
 def _rolepath(basedir: str, role: str) -> Optional[str]:
-    role_path = None
-
     possible_paths = [
         # if included from a playbook
         path_dwim(basedir, os.path.join('roles', role)),
@@ -483,10 +473,14 @@ def _rolepath(basedir: str, role: str) -> Optional[str]:
 
     possible_paths.append(path_dwim(basedir, ''))
 
-    for path_option in possible_paths:
-        if os.path.isdir(path_option):
-            role_path = path_option
-            break
+    role_path = next(
+        (
+            path_option
+            for path_option in possible_paths
+            if os.path.isdir(path_option)
+        ),
+        None,
+    )
 
     if role_path:
         add_all_plugin_dirs(role_path)
@@ -537,7 +531,7 @@ def _sanitize_task(task: Dict[str, Any]) -> Dict[str, Any]:
 
 def normalize_task_v2(task: Dict[str, Any]) -> Dict[str, Any]:
     """Ensure tasks have a normalized action key and strings are converted to python objects."""
-    result = dict()
+    result = {}
 
     sanitized_task = _sanitize_task(task)
     mod_arg_parser = ModuleArgsParser(sanitized_task)
@@ -559,14 +553,14 @@ def normalize_task_v2(task: Dict[str, Any]) -> Dict[str, Any]:
         del arguments['_uses_shell']
 
     for (k, v) in list(task.items()):
-        if k in ('action', 'local_action', 'args', 'delegate_to') or k == action:
+        if k in ('action', 'local_action', 'args', 'delegate_to', action):
             # we don't want to re-assign these values, which were
             # determined by the ModuleArgsParser() above
             continue
         result[k] = v
 
     if not isinstance(action, str):
-        raise RuntimeError("Task actions can only be strings, got %s" % action)
+        raise RuntimeError(f"Task actions can only be strings, got {action}")
     action_unnormalized = action
     # convert builtin fqn calls to short forms because most rules know only
     # about short calls but in the future we may switch the normalization to do
@@ -581,7 +575,7 @@ def normalize_task_v2(task: Dict[str, Any]) -> Dict[str, Any]:
         result['action']['__ansible_arguments__'] = arguments['_raw_params'].split(' ')
         del arguments['_raw_params']
     else:
-        result['action']['__ansible_arguments__'] = list()
+        result['action']['__ansible_arguments__'] = []
 
     if 'argv' in arguments and not result['action']['__ansible_arguments__']:
         result['action']['__ansible_arguments__'] = arguments['argv']
@@ -602,8 +596,7 @@ def normalize_task(task: Dict[str, Any], filename: str) -> Dict[str, Any]:
 
 
 def task_to_str(task: Dict[str, Any]) -> str:
-    name = task.get("name")
-    if name:
+    if name := task.get("name"):
         return str(name)
     action = task.get("action")
     if isinstance(action, str) or not isinstance(action, dict):
@@ -630,7 +623,7 @@ def task_to_str(task: Dict[str, Any]) -> str:
 def extract_from_list(
     blocks: AnsibleBaseYAMLObject, candidates: List[str]
 ) -> List[Any]:
-    results = list()
+    results = []
     for block in blocks:
         for candidate in candidates:
             if isinstance(block, dict) and candidate in block:
@@ -645,7 +638,7 @@ def extract_from_list(
 
 
 def add_action_type(actions: AnsibleBaseYAMLObject, action_type: str) -> List[Any]:
-    results = list()
+    results = []
     for action in actions:
         # ignore empty task
         if not action:
@@ -656,7 +649,7 @@ def add_action_type(actions: AnsibleBaseYAMLObject, action_type: str) -> List[An
 
 
 def get_action_tasks(yaml: AnsibleBaseYAMLObject, file: Lintable) -> List[Any]:
-    tasks = list()
+    tasks = []
     if file.kind in ['tasks', 'handlers']:
         tasks = add_action_type(yaml, file.kind)
     else:
@@ -675,9 +668,12 @@ def get_action_tasks(yaml: AnsibleBaseYAMLObject, file: Lintable) -> List[Any]:
     return [
         task
         for task in tasks
-        if set(
-            ['include', 'include_tasks', 'import_playbook', 'import_tasks']
-        ).isdisjoint(task.keys())
+        if {
+            'include',
+            'include_tasks',
+            'import_playbook',
+            'import_tasks',
+        }.isdisjoint(task.keys())
     ]
 
 
@@ -685,17 +681,11 @@ def get_normalized_tasks(
     yaml: "AnsibleBaseYAMLObject", file: Lintable
 ) -> List[Dict[str, Any]]:
     tasks = get_action_tasks(yaml, file)
-    res = []
-    for task in tasks:
-        # An empty `tags` block causes `None` to be returned if
-        # the `or []` is not present - `task.get('tags', [])`
-        # does not suffice.
-        if 'skip_ansible_lint' in (task.get('tags') or []):
-            # No need to normalize_task is we are skipping it.
-            continue
-        res.append(normalize_task(task, str(file.path)))
-
-    return res
+    return [
+        normalize_task(task, str(file.path))
+        for task in tasks
+        if 'skip_ansible_lint' not in ((task.get('tags') or []))
+    ]
 
 
 @lru_cache(maxsize=128)
@@ -735,7 +725,7 @@ def parse_yaml_linenumbers(lintable: Lintable) -> AnsibleBaseYAMLObject:
         data = loader.get_single_data()
     except (yaml.parser.ParserError, yaml.scanner.ScannerError) as e:
         logging.exception(e)
-        raise SystemExit("Failed to parse YAML in %s: %s" % (lintable.path, str(e)))
+        raise SystemExit(f"Failed to parse YAML in {lintable.path}: {str(e)}")
     return data
 
 
@@ -782,7 +772,7 @@ def is_playbook(filename: str) -> bool:
 
     # makes it work with Path objects by converting them to strings
     if not isinstance(filename, str):
-        filename = str(filename)
+        filename = filename
 
     try:
         f = parse_yaml_from_file(filename)
@@ -872,10 +862,8 @@ def nested_items(
     if isinstance(data, dict):
         for k, v in data.items():
             yield k, v, parent
-            for k, v, p in nested_items(v, k):
-                yield k, v, p
+            yield from nested_items(v, k)
     if isinstance(data, list):
         for item in data:
             yield "list-item", item, parent
-            for k, v, p in nested_items(item):
-                yield k, v, p
+            yield from nested_items(item)

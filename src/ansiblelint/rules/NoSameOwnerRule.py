@@ -80,9 +80,9 @@ https://zuul-ci.org/docs/zuul-jobs/policy.html\
         synchronize = task['synchronize']
         archive = synchronize.get('archive', True)
 
-        if synchronize.get('owner', archive) or synchronize.get('group', archive):
-            return True
-        return False
+        return bool(
+            synchronize.get('owner', archive) or synchronize.get('group', archive)
+        )
 
     @staticmethod
     def handle_unarchive(task: Any) -> bool:
@@ -90,17 +90,15 @@ https://zuul-ci.org/docs/zuul-jobs/policy.html\
         unarchive = task['unarchive']
         delegate_to = task.get('delegate_to')
 
-        if (
-            delegate_to == 'localhost'
-            or delegate_to != 'localhost'
-            and 'remote_src' not in unarchive
-        ):
-            if unarchive['src'].endswith('zip'):
-                if '-X' in unarchive.get('extra_opts', []):
-                    return True
-            if re.search(r'.*\.tar(\.(gz|bz2|xz))?$', unarchive['src']):
-                if '--no-same-owner' not in unarchive.get('extra_opts', []):
-                    return True
+        if delegate_to == 'localhost' or 'remote_src' not in unarchive:
+            if unarchive['src'].endswith('zip') and '-X' in unarchive.get(
+                'extra_opts', []
+            ):
+                return True
+            if re.search(
+                r'.*\.tar(\.(gz|bz2|xz))?$', unarchive['src']
+            ) and '--no-same-owner' not in unarchive.get('extra_opts', []):
+                return True
         return False
 
 

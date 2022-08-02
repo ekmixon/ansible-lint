@@ -96,8 +96,7 @@ class BecomeUserWithoutBecomeRule(AnsibleLintRule):
         self, file: "Lintable", data: "odict[str, Any]"
     ) -> List["MatchError"]:
         if file.kind == 'playbook':
-            result = _become_user_without_become(False, data)
-            if result:
+            if result := _become_user_without_become(False, data):
                 return [
                     self.create_matcherror(
                         message=self.shortdesc,

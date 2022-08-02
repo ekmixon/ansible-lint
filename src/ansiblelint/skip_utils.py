@@ -72,10 +72,7 @@ def append_skipped_rules(
         _logger.error('Error trying to append skipped rules', exc_info=True)
         return pyyaml_data
 
-    if not yaml_skip:
-        return pyyaml_data
-
-    return yaml_skip
+    return yaml_skip or pyyaml_data
 
 
 @lru_cache(maxsize=128)
@@ -168,12 +165,10 @@ def _get_tasks_from_blocks(task_blocks: Sequence[Any]) -> Generator[Any, None, N
     def get_nested_tasks(task: Any) -> Generator[Any, None, None]:
         for k in NESTED_TASK_KEYS:
             if task and k in task and task[k]:
-                for subtask in task[k]:
-                    yield subtask
+                yield from task[k]
 
     for task in task_blocks:
-        for sub_task in get_nested_tasks(task):
-            yield sub_task
+        yield from get_nested_tasks(task)
         yield task
 
 

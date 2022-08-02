@@ -1,4 +1,5 @@
 """Utility functions related to file operations."""
+
 import copy
 import logging
 import os
@@ -19,12 +20,7 @@ from wcmatch.wcmatch import RECURSIVE, WcMatch
 from ansiblelint.config import BASE_KINDS, options
 from ansiblelint.constants import FileType
 
-if TYPE_CHECKING:
-    # https://github.com/PyCQA/pylint/issues/3979
-    BasePathLike = os.PathLike[Any]  # pylint: disable=unsubscriptable-object
-else:
-    BasePathLike = os.PathLike
-
+BasePathLike = os.PathLike[Any] if TYPE_CHECKING else os.PathLike
 _logger = logging.getLogger(__package__)
 
 
@@ -39,9 +35,7 @@ def normpath(path: Union[str, BasePathLike]) -> str:
     relpath = os.path.relpath(str(path))
     abspath = os.path.abspath(str(path))
     # we avoid returning relative paths that endup at root level
-    if abspath in relpath:
-        return abspath
-    return relpath
+    return abspath if abspath in relpath else relpath
 
 
 @contextmanager
@@ -58,7 +52,7 @@ def cwd(path: Union[str, BasePathLike]) -> Iterator[None]:
 def expand_path_vars(path: str) -> str:
     """Expand the environment or ~ variables in a path string."""
     # It may be possible for function to be called with a Path object
-    path = str(path).strip()
+    path = path.strip()
     path = os.path.expanduser(path)
     path = os.path.expandvars(path)
     return path
@@ -79,7 +73,7 @@ def kind_from_path(path: Path, base: bool = False) -> FileType:
     # pathlib.Path.match patterns are very limited, they do not support *a*.yml
     # glob.glob supports **/foo.yml but not multiple extensions
     pathex = wcmatch.pathlib.PurePath(path.absolute().resolve())
-    kinds = options.kinds if not base else BASE_KINDS
+    kinds = BASE_KINDS if base else options.kinds
     for entry in kinds:
         for k, v in entry.items():
             if pathex.globmatch(
@@ -99,11 +93,7 @@ def kind_from_path(path: Path, base: bool = False) -> FileType:
     if path.is_dir():
         return "role"
 
-    if str(path) == '/dev/stdin':
-        return "playbook"
-
-    # Unknown file types report a empty string (evaluated as False)
-    return ""
+    return "playbook" if str(path) == '/dev/stdin' else ""
 
 
 class Lintable:
@@ -143,7 +133,7 @@ class Lintable:
             if role.exists:
                 self.role = role.name
 
-        if str(self.path) in ['/dev/stdin', '-']:
+        if str(self.path) in {'/dev/stdin', '-'}:
             # pylint: disable=consider-using-with
             self.file = NamedTemporaryFile(mode="w+", suffix="playbook.yml")
             self.filename = self.file.name
@@ -196,7 +186,7 @@ class Lintable:
     def __eq__(self, other: object) -> bool:
         """Identify whether the other object represents the same rule match."""
         if isinstance(other, Lintable):
-            return bool(self.name == other.name and self.kind == other.kind)
+            return self.name == other.name and self.kind == other.kind
         return False
 
     def __repr__(self) -> str:
@@ -233,7 +223,10 @@ def discover_lintables(options: Namespace) -> Dict[str, Any]:
 
         out = set(out_present) - set(out_absent)
     except subprocess.CalledProcessError as exc:
-        if not (exc.returncode == 128 and 'fatal: not a git repository' in exc.output):
+        if (
+            exc.returncode != 128
+            or 'fatal: not a git repository' not in exc.output
+        ):
             _logger.warning(
                 "Failed to discover lintable files using git: %s",
                 exc.output.rstrip('\n'),
@@ -295,13 +288,7 @@ def guess_project_dir(config_file: Optional[str]) -> str:
 
 def expand_dirs_in_lintables(lintables: Set[Lintable]) -> None:
     """Return all recognized lintables within given directory."""
-    should_expand = False
-
-    for item in lintables:
-        if item.path.is_dir():
-            should_expand = True
-            break
-
+    should_expand = any(item.path.is_dir() for item in lintables)
     if should_expand:
         # this relies on git and we do not want to call unless needed
         all_files = discover_lintables(options)

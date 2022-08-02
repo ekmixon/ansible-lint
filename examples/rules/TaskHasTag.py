@@ -32,11 +32,8 @@ class TaskHasTag(AnsibleLintRule):
         if not set(task.keys()).isdisjoint(['include_tasks', 'fail']):
             return False
 
-        if not set(task.keys()).isdisjoint(['import_tasks', 'fail']):
-            return False
-
-        # Task should have tags
-        if 'tags' not in task:
-            return True
-
-        return False
+        return (
+            'tags' not in task
+            if set(task.keys()).isdisjoint(['import_tasks', 'fail'])
+            else False
+        )

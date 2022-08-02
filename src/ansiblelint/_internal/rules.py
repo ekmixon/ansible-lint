@@ -71,7 +71,7 @@ class BaseRule:
 
     def verbose(self) -> str:
         """Return a verbose representation of the rule."""
-        return self.id + ": " + self.shortdesc + "\n  " + self.description
+        return f"{self.id}: {self.shortdesc}" + "\n  " + self.description
 
     def match(self, line: str) -> Union[bool, str]:
         """Confirm if current rule matches the given string."""

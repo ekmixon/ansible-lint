@@ -97,10 +97,7 @@ def run_ansible_lint(
         'TERM',
     ]
 
-    if env is None:
-        _env = {}
-    else:
-        _env = env
+    _env = {} if env is None else env
     for v in safe_list:
         if v in os.environ and v not in _env:
             _env[v] = os.environ[v]

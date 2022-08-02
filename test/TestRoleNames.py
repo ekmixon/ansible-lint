@@ -1,5 +1,6 @@
 """Test the RoleNames rule."""
 
+
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -20,7 +21,7 @@ TASK_MINIMAL = """
 ROLE_MINIMAL = {'tasks': {'main.yml': TASK_MINIMAL}}
 ROLE_META_EMPTY = {'meta': {'main.yml': ''}}
 
-ROLE_WITH_EMPTY_META = {**ROLE_MINIMAL, **ROLE_META_EMPTY}
+ROLE_WITH_EMPTY_META = ROLE_MINIMAL | ROLE_META_EMPTY
 
 PLAY_INCLUDE_ROLE = f"""
 - hosts: all

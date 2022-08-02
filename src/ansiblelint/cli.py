@@ -348,7 +348,7 @@ def merge_config(file_config: Dict[Any, Any], cli_config: Namespace) -> Namespac
     # if either commandline parameter or config file option is set merge
     # with the other, if neither is set use the default
     for entry, default in lists_map.items():
-        if getattr(cli_config, entry, None) or entry in file_config.keys():
+        if getattr(cli_config, entry, None) or entry in file_config:
             value = getattr(cli_config, entry, [])
             value.extend(file_config.pop(entry, []))
         else:

@@ -71,9 +71,7 @@ class UseHandlerRatherThanWhenChangedRule(AnsibleLintRule):
         if isinstance(when, list):
             for item in when:
                 return _changed_in_when(item)
-        if isinstance(when, str):
-            return _changed_in_when(when)
-        return False
+        return _changed_in_when(when) if isinstance(when, str) else False
 
 
 if "pytest" in sys.modules:

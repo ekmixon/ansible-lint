@@ -31,14 +31,13 @@ class IgnoreErrorsRule(AnsibleLintRule):
     def matchtask(
         self, task: Dict[str, Any], file: 'Optional[Lintable]' = None
     ) -> Union[bool, str]:
-        if (
-            task.get("ignore_errors")
-            and task.get("ignore_errors") != "{{ ansible_check_mode }}"
-            and not task.get("register")
-        ):
-            return True
-
-        return False
+        return bool(
+            (
+                task.get("ignore_errors")
+                and task.get("ignore_errors") != "{{ ansible_check_mode }}"
+                and not task.get("register")
+            )
+        )
 
 
 if "pytest" in sys.modules:

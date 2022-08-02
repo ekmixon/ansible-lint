@@ -62,11 +62,13 @@ class EnvVarsInCommandRule(AnsibleLintRule):
     ) -> Union[bool, str]:
         if task["action"]["__ansible_module__"] in ['command']:
             first_cmd_arg = get_first_cmd_arg(task)
-            if not first_cmd_arg:
-                return False
-
-            return any(
-                [arg not in self.expected_args for arg in task['action']]
-                + ["=" in first_cmd_arg]
+            return (
+                any(
+                    [arg not in self.expected_args for arg in task['action']]
+                    + ["=" in first_cmd_arg]
+                )
+                if first_cmd_arg
+                else False
             )
+
         return False

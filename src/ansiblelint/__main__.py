@@ -112,10 +112,7 @@ def initialize_options(arguments: Optional[List[str]] = None) -> None:
     cache_key = hashlib.sha256(
         os.path.abspath(options.project_dir).encode()
     ).hexdigest()[:6]
-    options.cache_dir = "%s/ansible-lint/%s" % (
-        os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache")),
-        cache_key,
-    )
+    options.cache_dir = f'{os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache"))}/ansible-lint/{cache_key}'
 
 
 def report_outcome(  # noqa: C901
@@ -143,10 +140,12 @@ def report_outcome(  # noqa: C901
         if 'unskippable' in matched_rules[rule_id].tags:
             matched_rules.pop(rule_id)
 
-    entries = []
-    for key in sorted(matched_rules.keys()):
-        if {key, *matched_rules[key].tags}.isdisjoint(options.warn_list):
-            entries.append(f"  - {key}  # {matched_rules[key].shortdesc}\n")
+    entries = [
+        f"  - {key}  # {matched_rules[key].shortdesc}\n"
+        for key in sorted(matched_rules.keys())
+        if {key, *matched_rules[key].tags}.isdisjoint(options.warn_list)
+    ]
+
     for match in result.matches:
         if "experimental" in match.rule.tags:
             entries.append("  - experimental  # all rules tagged as experimental\n")
@@ -184,9 +183,7 @@ warn_list:  # or 'skip_list' to silence them completely
             f"on {len(result.files)} files."
         )
 
-    if mark_as_success or not failures:
-        return 0
-    return 2
+    return 0 if mark_as_success or not failures else 2
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -244,7 +241,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             old_result = _get_matches(rules, options)
             # remove old matches from current list
             matches_delta = list(set(result.matches) - set(old_result.matches))
-            if len(matches_delta) == 0:
+            if not matches_delta:
                 _logger.warning(
                     "Total violations not increased since previous "
                     "commit, will mark result as success. (%s -> %s)",

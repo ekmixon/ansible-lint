@@ -38,8 +38,5 @@ class RoleRelativePath(AnsibleLintRule):
         if 'src' not in task['action']:
             return False
 
-        path_to_check = '../{}'.format(self._module_to_path_folder[module])
-        if path_to_check in task['action']['src']:
-            return True
-
-        return False
+        path_to_check = f'../{self._module_to_path_folder[module]}'
+        return path_to_check in task['action']['src']

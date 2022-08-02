@@ -48,8 +48,9 @@ class UsingBareVariablesIsDeprecatedRule(AnsibleLintRule):
     def matchtask(
         self, task: Dict[str, Any], file: 'Optional[Lintable]' = None
     ) -> Union[bool, str]:
-        loop_type = next((key for key in task if key.startswith("with_")), None)
-        if loop_type:
+        if loop_type := next(
+            (key for key in task if key.startswith("with_")), None
+        ):
             if loop_type in [
                 "with_nested",
                 "with_together",
@@ -67,9 +68,11 @@ class UsingBareVariablesIsDeprecatedRule(AnsibleLintRule):
                     return self._matchvar(var, task, loop_type)
             elif loop_type == "with_subelements":
                 return self._matchvar(task[loop_type][0], task, loop_type)
-            elif loop_type in ["with_sequence", "with_ini", "with_inventory_hostnames"]:
-                pass
-            else:
+            elif loop_type not in [
+                "with_sequence",
+                "with_ini",
+                "with_inventory_hostnames",
+            ]:
                 return self._matchvar(task[loop_type], task, loop_type)
         return False
 

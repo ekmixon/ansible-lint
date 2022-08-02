@@ -113,7 +113,7 @@ def test_skip_non_existent_id(
 def test_no_duplicate_rule_ids(test_rules_collection: RulesCollection) -> None:
     real_rules = RulesCollection([os.path.abspath('./src/ansiblelint/rules')])
     rule_ids = [rule.id for rule in real_rules]
-    assert not any(y > 1 for y in collections.Counter(rule_ids).values())
+    assert all(y <= 1 for y in collections.Counter(rule_ids).values())
 
 
 def test_rich_rule_listing() -> None:

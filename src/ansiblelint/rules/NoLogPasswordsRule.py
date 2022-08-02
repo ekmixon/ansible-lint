@@ -52,12 +52,10 @@ class NoLogPasswordsRule(AnsibleLintRule):
         ):
             has_password = False
         else:
-            for param in task["action"].keys():
-                if 'password' in param:
-                    has_password = True
-                    break
-            else:
-                has_password = False
+            has_password = next(
+                (True for param in task["action"].keys() if 'password' in param),
+                False,
+            )
 
         has_loop = [key for key in task if key.startswith("with_") or key == 'loop']
         # No no_log and no_log: False behave the same way

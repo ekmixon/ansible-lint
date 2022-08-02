@@ -120,10 +120,7 @@ class AnnotationsFormatter(BaseFormatter):  # type: ignore
         rule_id = match.rule.id
         severity = match.rule.severity
         violation_details = self.escape(match.message)
-        if match.column:
-            col = f",col={match.column}"
-        else:
-            col = ""
+        col = f",col={match.column}" if match.column else ""
         return (
             f"::{level} file={file_path},line={line_num}{col},severity={severity}"
             f"::{rule_id} {violation_details}"
@@ -131,12 +128,9 @@ class AnnotationsFormatter(BaseFormatter):  # type: ignore
 
     @staticmethod
     def _severity_to_level(severity: str) -> str:
-        if severity in ['VERY_LOW', 'LOW']:
+        if severity in {'VERY_LOW', 'LOW'}:
             return 'warning'
-        if severity in ['INFO']:
-            return 'debug'
-        # ['MEDIUM', 'HIGH', 'VERY_HIGH'] or anything else
-        return 'error'
+        return 'debug' if severity in {'INFO'} else 'error'
 
 
 class ParseableSeverityFormatter(BaseFormatter[Any]):
@@ -171,11 +165,13 @@ class CodeclimateJSONFormatter(BaseFormatter[Any]):
 
         result = []
         for match in matches:
-            issue: Dict[str, Any] = {}
-            issue['type'] = 'issue'
-            issue['check_name'] = f"[{match.rule.id}] {match.message}"
-            issue['categories'] = match.rule.tags
-            issue['severity'] = self._severity_to_level(match.rule.severity)
+            issue: Dict[str, Any] = {
+                'type': 'issue',
+                'check_name': f"[{match.rule.id}] {match.message}",
+                'categories': match.rule.tags,
+                'severity': self._severity_to_level(match.rule.severity),
+            }
+
             issue['description'] = self.escape(str(match.rule.description))
             issue['fingerprint'] = hashlib.sha256(
                 repr(match).encode('utf-8')
@@ -199,13 +195,10 @@ class CodeclimateJSONFormatter(BaseFormatter[Any]):
 
     @staticmethod
     def _severity_to_level(severity: str) -> str:
-        if severity in ['LOW']:
+        if severity in {'LOW'}:
             return 'minor'
-        if severity in ['MEDIUM']:
+        if severity in {'MEDIUM'}:
             return 'major'
-        if severity in ['HIGH']:
+        if severity in {'HIGH'}:
             return 'critical'
-        if severity in ['VERY_HIGH']:
-            return 'blocker'
-        # VERY_LOW, INFO or anything else
-        return 'info'
+        return 'blocker' if severity in {'VERY_HIGH'} else 'info'

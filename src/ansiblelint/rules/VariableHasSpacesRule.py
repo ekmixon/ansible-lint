@@ -67,4 +67,4 @@ if 'pytest' in sys.modules:
         error_lines_difference = list(
             set(error_expected_lines).symmetric_difference(set(lint_error_lines))
         )
-        assert len(error_lines_difference) == 0
+        assert not error_lines_difference

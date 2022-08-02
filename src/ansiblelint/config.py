@@ -1,4 +1,5 @@
 """Store configuration options as a singleton."""
+
 import os
 import re
 import subprocess
@@ -83,12 +84,13 @@ options = Namespace(
     loop_var_prefix=None,
     var_naming_pattern=None,
     offline=False,
-    project_dir=".",  # default should be valid folder (do not use None here)
+    project_dir=".",
     extra_vars=None,
     enable_list=[],
     skip_action_validation=True,
-    rules=dict(),  # Placeholder to set and keep configurations for each rule.
+    rules={},
 )
+
 
 # Used to store detected tag deprecations
 used_old_tags: Dict[str, str] = {}
@@ -99,9 +101,9 @@ collection_list: List[str] = []
 
 def get_rule_config(rule_id: str) -> Dict[str, Any]:
     """Get configurations for the rule ``rule_id``."""
-    rule_config = options.rules.get(rule_id, dict())
+    rule_config = options.rules.get(rule_id, {})
     if not isinstance(rule_config, dict):
-        raise RuntimeError("Invalid rule config for %s: %s" % (rule_id, rule_config))
+        raise RuntimeError(f"Invalid rule config for {rule_id}: {rule_config}")
     return rule_config
 
 
@@ -121,17 +123,13 @@ def ansible_collections_path() -> str:
 
 def parse_ansible_version(stdout: str) -> Tuple[str, Optional[str]]:
     """Parse output of 'ansible --version'."""
-    # Ansible can produce extra output before displaying version in debug mode.
-
-    # ansible-core 2.11+: 'ansible [core 2.11.3]'
-    match = re.search(r"^ansible \[(?:core|base) ([^\]]+)\]", stdout, re.MULTILINE)
-    if match:
-        return match.group(1), None
-    # ansible-base 2.10 and Ansible 2.9: 'ansible 2.x.y'
-    match = re.search(r"^ansible ([^\s]+)", stdout, re.MULTILINE)
-    if match:
-        return match.group(1), None
-    return "", "FATAL: Unable parse ansible cli version: %s" % stdout
+    if match := re.search(
+        r"^ansible \[(?:core|base) ([^\]]+)\]", stdout, re.MULTILINE
+    ):
+        return match[1], None
+    if match := re.search(r"^ansible ([^\s]+)", stdout, re.MULTILINE):
+        return match[1], None
+    return "", f"FATAL: Unable parse ansible cli version: {stdout}"
 
 
 @lru_cache()

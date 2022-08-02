@@ -52,10 +52,7 @@ def check_ansible_presence(exit_on_error: bool = False) -> Tuple[str, str]:
             check=False,
         )
         if result.returncode != 0:
-            return (
-                ver,
-                "FATAL: Unable to retrieve ansible cli version: %s" % result.stdout,
-            )
+            return ver, f"FATAL: Unable to retrieve ansible cli version: {result.stdout}"
 
         ver, error = parse_ansible_version(result.stdout)
         if error is not None:
@@ -68,7 +65,7 @@ def check_ansible_presence(exit_on_error: bool = False) -> Tuple[str, str]:
                 ANSIBLE_MIN_VERSION
             ):
                 failed = True
-        except (ImportError, ModuleNotFoundError) as e:
+        except ImportError as e:
             failed = True
             ansible_module_version = "none"
             err += f"{e}\n"
@@ -225,7 +222,7 @@ def _get_galaxy_role_ns(galaxy_infos: Dict[str, Any]) -> str:
     else:
         role_namespace = f"{role_namespace}."
     if not isinstance(role_namespace, str):
-        raise RuntimeError("Role namespace must be string, not %s" % role_namespace)
+        raise RuntimeError(f"Role namespace must be string, not {role_namespace}")
     return role_namespace
 
 
@@ -255,10 +252,17 @@ def _install_galaxy_role() -> None:
 
     fqrn = _get_role_fqrn(yaml['galaxy_info'])
 
-    if 'role-name' not in options.skip_list:
-        if not re.match(r"[a-z0-9][a-z0-9_]+\.[a-z][a-z0-9_]+$", fqrn):
-            msg = (
-                """\
+    if 'role-name' in options.skip_list:
+        # when 'role-name' is in skip_list, we stick to plain role names
+        if 'role_name' in yaml['galaxy_info']:
+            role_namespace = _get_galaxy_role_ns(yaml['galaxy_info'])
+            role_name = _get_galaxy_role_name(yaml['galaxy_info'])
+            fqrn = f"{role_namespace}{role_name}"
+        else:
+            fqrn = pathlib.Path(".").absolute().name
+    elif not re.match(r"[a-z0-9][a-z0-9_]+\.[a-z][a-z0-9_]+$", fqrn):
+        msg = (
+            """\
 Computed fully qualified role name of %s does not follow current galaxy requirements.
 Please edit meta/main.yml and assure we can correctly determine full role name:
 
@@ -271,21 +275,13 @@ Role: https://galaxy.ansible.com/docs/contributing/creating_role.html#role-names
 
 As an alternative, you can add 'role-name' to either skip_list or warn_list.
 """
-                % fqrn
-            )
-            if 'role-name' in options.warn_list:
-                _logger.warning(msg)
-            else:
-                _logger.error(msg)
-                sys.exit(INVALID_PREREQUISITES_RC)
-    else:
-        # when 'role-name' is in skip_list, we stick to plain role names
-        if 'role_name' in yaml['galaxy_info']:
-            role_namespace = _get_galaxy_role_ns(yaml['galaxy_info'])
-            role_name = _get_galaxy_role_name(yaml['galaxy_info'])
-            fqrn = f"{role_namespace}{role_name}"
+            % fqrn
+        )
+        if 'role-name' in options.warn_list:
+            _logger.warning(msg)
         else:
-            fqrn = pathlib.Path(".").absolute().name
+            _logger.error(msg)
+            sys.exit(INVALID_PREREQUISITES_RC)
     p = pathlib.Path(f"{options.cache_dir}/roles")
     p.mkdir(parents=True, exist_ok=True)
     link_path = p / fqrn
@@ -365,8 +361,7 @@ def _write_module_stub(
 def _update_env(varname: str, value: List[str], default: str = "") -> None:
     """Update colon based environment variable if needed. by appending."""
     if value:
-        orig_value = os.environ.get(varname, default=default)
-        if orig_value:
+        if orig_value := os.environ.get(varname, default=default):
             # Prepend original or default variable content to custom content.
             value = [*orig_value.split(':'), *value]
         value_str = ":".join(value)
@@ -427,12 +422,10 @@ def ansible_config_get(key: str, kind: Type[Any] = str) -> Union[str, List[str],
     )
 
     if kind == str:
-        result = re.search(rf"^{key}.* = (.*)$", config, re.MULTILINE)
-        if result:
+        if result := re.search(rf"^{key}.* = (.*)$", config, re.MULTILINE):
             return result.groups()[0]
     elif kind == list:
-        result = re.search(rf"^{key}.* = (\[.*\])$", config, re.MULTILINE)
-        if result:
+        if result := re.search(rf"^{key}.* = (\[.*\])$", config, re.MULTILINE):
             val = eval(result.groups()[0])  # pylint: disable=eval-used
             if not isinstance(val, list):
                 raise RuntimeError(f"Unexpected data read for {key}: {val}")
@@ -453,7 +446,7 @@ def require_collection(  # noqa: C901
     try:
         ns, coll = name.split('.', 1)
     except ValueError:
-        sys.exit("Invalid collection name supplied: %s" % name)
+        sys.exit(f"Invalid collection name supplied: {name}")
 
     paths = ansible_config_get('COLLECTIONS_PATHS', list)
     if not paths or not isinstance(paths, list):

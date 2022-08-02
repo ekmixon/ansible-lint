@@ -62,16 +62,19 @@ class OctalPermissionsRule(AnsibleLintRule):
         # are more generous than world permissions
 
         other_write_without_read = (
-            mode % 8 and mode % 8 < 4 and not (mode % 8 == 1 and (mode >> 6) % 2 == 1)
+            mode % 8 and mode % 8 < 4 and (mode % 8 != 1 or (mode >> 6) % 2 != 1)
         )
+
         group_write_without_read = (
             (mode >> 3) % 8
             and (mode >> 3) % 8 < 4
-            and not ((mode >> 3) % 8 == 1 and (mode >> 6) % 2 == 1)
+            and ((mode >> 3) % 8 != 1 or (mode >> 6) % 2 != 1)
         )
+
         user_write_without_read = (
-            (mode >> 6) % 8 and (mode >> 6) % 8 < 4 and not (mode >> 6) % 8 == 1
+            (mode >> 6) % 8 and (mode >> 6) % 8 < 4 and (mode >> 6) % 8 != 1
         )
+
         other_more_generous_than_group = mode % 8 > (mode >> 3) % 8
         other_more_generous_than_user = mode % 8 > (mode >> 6) % 8
         group_more_generous_than_user = (mode >> 3) % 8 > (mode >> 6) % 8

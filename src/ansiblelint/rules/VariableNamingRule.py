@@ -69,23 +69,19 @@ class VariableNamingRule(AnsibleLintRule):
         self, file: "Lintable", data: "odict[str, Any]"
     ) -> List["MatchError"]:
         """Return matches found for a specific playbook."""
-        results = []
-
         # If the Play uses the 'vars' section to set variables
         our_vars = data.get('vars', {})
-        for key in our_vars.keys():
-            if self.is_invalid_variable_name(key):
-                results.append(
-                    self.create_matcherror(
-                        filename=file,
-                        linenumber=our_vars['__line__'],
-                        message="Play defines variable '"
-                        + key
-                        + "' within 'vars' section that violates variable naming standards",
-                    )
-                )
-
-        return results
+        return [
+            self.create_matcherror(
+                filename=file,
+                linenumber=our_vars['__line__'],
+                message="Play defines variable '"
+                + key
+                + "' within 'vars' section that violates variable naming standards",
+            )
+            for key in our_vars.keys()
+            if self.is_invalid_variable_name(key)
+        ]
 
     def matchtask(
         self, task: Dict[str, Any], file: Optional[Lintable] = None
@@ -106,7 +102,7 @@ class VariableNamingRule(AnsibleLintRule):
                     return "Task uses 'set_fact' to define variables that violates variable naming standards"
 
         # If the task registers a variable
-        registered_var = task.get('register', None)
+        registered_var = task.get('register')
         if registered_var and self.is_invalid_variable_name(registered_var):
             return "Task registers a variable that violates variable naming standards"
 
@@ -119,17 +115,18 @@ class VariableNamingRule(AnsibleLintRule):
 
         if str(file.kind) == "vars":
             meta_data = parse_yaml_from_file(str(file.path))
-            for key in meta_data.keys():
-                if self.is_invalid_variable_name(key):
-                    results.append(
-                        self.create_matcherror(
-                            filename=file,
-                            # linenumber=vars['__line__'],
-                            message="File defines variable '"
-                            + key
-                            + "' that violates variable naming standards",
-                        )
-                    )
+            results.extend(
+                self.create_matcherror(
+                    filename=file,
+                    # linenumber=vars['__line__'],
+                    message="File defines variable '"
+                    + key
+                    + "' that violates variable naming standards",
+                )
+                for key in meta_data.keys()
+                if self.is_invalid_variable_name(key)
+            )
+
         else:
             results.extend(super().matchyaml(file))
         return results

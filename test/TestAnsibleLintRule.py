@@ -13,7 +13,7 @@ def test_unjinja() -> None:
     assert AnsibleLintRule.unjinja(text) == output
 
 
-@pytest.mark.parametrize('rule_config', (dict(), dict(foo=True, bar=1)))
+@pytest.mark.parametrize('rule_config', ({}, dict(foo=True, bar=1)))
 def test_rule_config(rule_config: Dict[str, Any], monkeypatch: MonkeyPatch) -> None:
     rule_id = 'rule-0'
     monkeypatch.setattr(AnsibleLintRule, 'id', rule_id)

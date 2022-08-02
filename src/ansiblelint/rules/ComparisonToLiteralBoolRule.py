@@ -34,9 +34,7 @@ class ComparisonToLiteralBoolRule(AnsibleLintRule):
                 if isinstance(v, str):
                     if self.literal_bool_compare.search(v):
                         return True
-                elif isinstance(v, bool):
-                    pass
-                else:
+                elif not isinstance(v, bool):
                     for item in v:
                         if isinstance(item, str) and self.literal_bool_compare.search(
                             item

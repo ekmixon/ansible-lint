@@ -117,10 +117,7 @@ class MissingFilePermissionsRule(AnsibleLintRule):
         # replace module is the only one that has a valid default preserve
         # behavior, but we want to trigger rule if user used incorrect
         # documentation and put 'preserve', which is not supported.
-        if module == 'replace' and mode is None:
-            return False
-
-        return mode is None
+        return False if module == 'replace' and mode is None else mode is None
 
 
 if "pytest" in sys.modules:  # noqa: C901

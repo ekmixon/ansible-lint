@@ -43,13 +43,11 @@ def _galaxy_info_errors_itr(
     str_info_list: "Tuple[str, ...]" = META_STR_INFO,
 ) -> Generator[str, None, None]:
     for info in info_list:
-        ginfo = galaxy_info.get(info, False)
-        if ginfo:
+        if ginfo := galaxy_info.get(info, False):
             if info in str_info_list and not isinstance(ginfo, str):
                 yield '{info} should be a string'.format(info=info)
             elif info == 'platforms':
-                for err in _platform_info_errors_itr(ginfo):
-                    yield err
+                yield from _platform_info_errors_itr(ginfo)
         else:
             yield 'Role info should contain {info}'.format(info=info)
 
@@ -73,8 +71,7 @@ class MetaMainHasInfoRule(AnsibleLintRule):
         if file.path.name != 'main.yml':
             return []
 
-        galaxy_info = data.get('galaxy_info', False)
-        if galaxy_info:
+        if galaxy_info := data.get('galaxy_info', False):
             return [
                 self.create_matcherror(message=err, filename=file)
                 for err in _galaxy_info_errors_itr(galaxy_info)

@@ -28,7 +28,7 @@ def test_base_formatter_when_base_dir(
     # Then
     assert isinstance(output_path, str)
     assert base_formatter._base_dir is None or isinstance(base_formatter._base_dir, str)
-    assert output_path == str(path)
+    assert output_path == path
 
 
 @pytest.mark.parametrize(

@@ -88,8 +88,7 @@ class AnsibleSyntaxCheckRule(AnsibleLintRule):
             else:
                 details = stdout
 
-            m = _ansible_syntax_check_re.search(stderr)
-            if m:
+            if m := _ansible_syntax_check_re.search(stderr):
                 message = m.groupdict()['title']
                 # Ansible returns absolute paths
                 filename = m.groupdict()['filename']

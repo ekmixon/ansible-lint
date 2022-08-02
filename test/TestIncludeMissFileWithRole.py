@@ -112,10 +112,9 @@ def test_cases_warning_message(runner: Runner, caplog: LogCaptureFixture) -> Non
 @pytest.mark.usefixtures('_play_files')
 def test_cases_that_do_not_report(runner: Runner, caplog: LogCaptureFixture) -> None:
     runner.run()
-    noexist_message_count = 0
+    noexist_message_count = sum(
+        "Couldn't open" in str(record) for record in caplog.records
+    )
 
-    for record in caplog.records:
-        if "Couldn't open" in str(record):
-            noexist_message_count += 1
 
     assert noexist_message_count == 0

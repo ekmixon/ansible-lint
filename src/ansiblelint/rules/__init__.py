@@ -38,7 +38,7 @@ class AnsibleLintRule(BaseRule):
 
     def __repr__(self) -> str:
         """Return a AnsibleLintRule instance representation."""
-        return self.id + ": " + self.shortdesc
+        return f"{self.id}: {self.shortdesc}"
 
     @staticmethod
     def unjinja(text: str) -> str:
@@ -131,7 +131,7 @@ class AnsibleLintRule(BaseRule):
             message = None
             if isinstance(result, str):
                 message = result
-            task_msg = "Task/Handler: " + ansiblelint.utils.task_to_str(task)
+            task_msg = f"Task/Handler: {ansiblelint.utils.task_to_str(task)}"
             m = self.create_matcherror(
                 message=message,
                 linenumber=task[ansiblelint.utils.LINE_NUMBER_KEY],
@@ -240,12 +240,11 @@ class RulesCollection:
     def run(
         self, file: Lintable, tags: Set[str] = set(), skip_list: List[str] = []
     ) -> List[MatchError]:
-        matches: List[MatchError] = list()
+        matches: List[MatchError] = []
 
         if not file.path.is_dir():
             try:
-                if file.content is not None:  # loads the file content
-                    pass
+                pass
             except IOError as e:
                 return [
                     MatchError(
@@ -299,8 +298,7 @@ class RulesCollection:
                 tags[tag].append(rule.id)
         result = "# List of tags and rules they cover\n"
         for tag in sorted(tags):
-            desc = tag_desc.get(tag, None)
-            if desc:
+            if desc := tag_desc.get(tag, None):
                 result += f"{tag}:  # {desc}\n"
             else:
                 result += f"{tag}:\n"
