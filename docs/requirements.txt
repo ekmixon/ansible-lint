@@ -9,7 +9,7 @@ ansible-base==2.10.10
 attrs==21.2.0
 babel==2.9.1
 bracex==2.1.1
-certifi==2021.5.30
+certifi==2023.7.22
 cffi==1.14.5
 chardet==4.0.0
 colorama==0.4.4
