@@ -19,7 +19,7 @@ docutils==0.16
 enrich==1.2.6
 idna==2.10
 imagesize==1.2.0
-jinja2==3.0.1
+jinja2==3.1.4
 markdown-it-py==1.1.0
 markupsafe==2.0.1
 mdit-py-plugins==0.2.8
